@@ -3,27 +3,37 @@ from time import sleep
 import paho.mqtt.client as mqtt
 from sys import exit
 
+broker = "mqtt.shack"
+clientname = "shackstrom"
+topic = "glados/" + clientname + "/"
+
 
 def main():
-    client = mqtt.Client("shackstrom")
-    client.connect("mqtt.shack")
-    client.publish("glados/shackstrom/status", payload="Online", qos=0, retain=True)
-    client.will_set("glados/shackstrom/status", payload="Offline", qos=0, retain=True)
-    print("conneted to mqtt.shack")
+    client = mqtt.Client(clientname)
+    client.connect(broker)
+    client.publish(topic + "status", payload="Online", qos=0, retain=True)
+    client.will_set(topic + "status", payload="Offline", qos=0, retain=True)
+    print(f"connected to {broker}")
     while True:
         try:
             r = (requests.get("http://10.42.20.255/csv.html").text)
             data = r.split("body")[1].split(",")
             zaehlerstand_foyer = int(data[16]) * 10  # in Wh
+            zaehlerstand_kueche = int(data[17]) * 10  # in Wh
             zaehlerstand_c2 = int(data[18]) * 10  # in Wh
 
-            client.publish("glados/shackstrom/zaehler_foyer/total", zaehlerstand_foyer)
-            client.publish("glados/shackstrom/zaehler_c2/total", zaehlerstand_c2)
+            client.publish(topic + "zaehler_foyer/total", zaehlerstand_foyer)
+            client.publish(topic + "zaehler_kueche/total", zaehlerstand_kueche)
+            client.publish(topic + "zaehler_c2/total", zaehlerstand_c2)
+            client.publish(topic + "total",
+                           zaehlerstand_foyer
+                           + zaehlerstand_kueche
+                           + zaehlerstand_c2)
 
             sleep(60)  # wait a minute
         except KeyboardInterrupt:
             break
-    print("compute kaputt, bitte neustarten")
+    print("computer kaputt, bitte neustarten")
     exit(1)
 
 
