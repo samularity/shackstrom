@@ -2,13 +2,16 @@ import requests
 from time import sleep
 import paho.mqtt.client as mqtt
 from sys import exit
-
-broker = "mqtt.shack"
-clientname = "shackstrom"
-topic = "glados/" + clientname + "/"
+from os import environ
 
 
 def main():
+
+    data_url = environ.get('DATA_URL', "http://10.42.20.255/csv.html")
+    broker = environ.get('BROKER', "mqtt.shack")
+    clientname = "shackstrom"
+    topic = "glados/" + clientname + "/"
+
     client = mqtt.Client(clientname)
     client.connect(broker)
     client.publish(topic + "status", payload="Online", qos=0, retain=True)
@@ -16,7 +19,7 @@ def main():
     print(f"connected to {broker}")
     while True:
         try:
-            r = (requests.get("http://10.42.20.255/csv.html").text)
+            r = (requests.get(data_url).text)
             data = r.split("body")[1].split(",")
             zaehlerstand_foyer = int(data[16]) * 10  # in Wh
             zaehlerstand_kueche = int(data[17]) * 10  # in Wh

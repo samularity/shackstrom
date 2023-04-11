@@ -12,15 +12,37 @@ The data is then parsed, transformed in Watthours and published it via mqtt.
 
 ## how to install
 
-just add the following part to your nix-config
+just add the following part to your nix-config (and update the rev&hash )
 
 ```
-{ pkgs }:
+{ pkgs, ... }:
+let
+  src = pkgs.fetchFromGitHub {
+    repo = "shackstrom";
+    owner = "samularity";
+    rev = "adfbdc7d12000fbc9fd9367c8ef0a53b7d0a9fad";
+    hash = "sha256-77vSX2+1XXaBVgLka+tSEK/XYZASEk9iq+uEuO1aOUQ=";
+  };
+  pkg = pkgs.writers.writePython3 "test_python3" {
+    libraries = [ pkgs.python3Packages.requests pkgs.python3Packages.paho-mqtt  ];
+  } (builtins.readFile "${src}/shackstrom.py");
+in
 {
-    systemd.services.shackstrom={
-        script=pkgs.callPackage ./default.nix {};
-        enable = True;
-    }
+    systemd.services = {
+      u300-power = {
+        enable = true;
+        environment = { 
+          DATA_URL = "http://10.42.20.255/csv.html";
+          BROKER = "mqtt.shack";
+        };
+        serviceConfig = {
+          Restart = "always";
+          ExecStart = pkg;
+          RestartSec = "15s";
+        };
+        wantedBy = [ "multi-user.target" ];
+      };
+    };
 }
 ```
 
